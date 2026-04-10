@@ -1001,7 +1001,6 @@ def generate_pdf(
     document.addPageTemplates([cover_template, content_template])
 
     story: List = [
-        Spacer(1, CONTENT_HEIGHT - 8),
         NextPageTemplate("Content"),
         PageBreak(),
     ]
@@ -1048,9 +1047,14 @@ def generate_fallback_pdf_report(scan_result: ScanResult, error_message: str | N
     x = MARGIN
     y = height - MARGIN
 
+    def paint_page_background() -> None:
+        canvas.setFillColor(NAVY)
+        canvas.rect(0, 0, width, height, fill=1, stroke=0)
+
     def new_page() -> None:
         nonlocal y
         canvas.showPage()
+        paint_page_background()
         y = height - MARGIN
 
     def write_line(text: str, *, font: str = "Helvetica", size: float = 10, color=LIGHT_GRAY, gap: float = 14) -> None:
@@ -1062,8 +1066,7 @@ def generate_fallback_pdf_report(scan_result: ScanResult, error_message: str | N
         canvas.drawString(x, y, text[:120])
         y -= gap
 
-    canvas.setFillColor(NAVY)
-    canvas.rect(0, 0, width, height, fill=1, stroke=0)
+    paint_page_background()
 
     write_line("DOMAINVITALS SECURITY ASSESSMENT", font="Helvetica-Bold", size=20, color=WHITE, gap=22)
     write_line(f"Domain: {scan_result.domain}", font="Helvetica-Bold", size=13, color=WHITE, gap=18)
