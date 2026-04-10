@@ -34,3 +34,5 @@ backend/.mypy_cache/
 backend/.ruff_cache/
 venv/
 .venv/
+.vercel
+.env*.local
