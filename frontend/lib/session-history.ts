@@ -1,4 +1,4 @@
-import { ScanResults } from "@/lib/types";
+import { Grade, ScanResults } from "@/lib/types";
 
 export interface SessionScanRecord {
   scanId: string;
@@ -7,7 +7,7 @@ export interface SessionScanRecord {
   createdAt: string;
   updatedAt: string;
   completedAt?: string | null;
-  overallGrade?: string | null;
+  overallGrade?: Grade | null;
   overallScore?: number | null;
   findingsCount: number;
 }

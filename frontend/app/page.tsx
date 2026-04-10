@@ -1,4 +1,3 @@
-import Link from "next/link";
 import {
   BadgeCheck,
   Binary,
@@ -132,9 +131,7 @@ export default function HomePage() {
       <footer className="border-t border-white/6 px-4 py-8 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 text-sm text-textSecondary sm:flex-row sm:items-center sm:justify-between">
           <p>Built for the Codex Creator Challenge</p>
-          <Link className="transition hover:text-white" href="https://github.com/your-org/domainvitals">
-            Github Repo
-          </Link>
+          <p>Passive-only recon • Demo-ready on Vercel + Render</p>
         </div>
       </footer>
     </main>

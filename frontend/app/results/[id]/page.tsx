@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { ArrowLeft, Download, Filter, RotateCw } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { AlertTriangle, ArrowLeft, Download, Filter, RotateCw, X } from "lucide-react";
 
 import { CategoryCard } from "@/components/ui/CategoryCard";
 import { GradeDisplay } from "@/components/ui/GradeDisplay";
@@ -16,8 +16,10 @@ import {
   findingCountBySeverity,
   findingsForCategory,
   formatDateTime,
+  modulePresentation,
   severityOrder
 } from "@/lib/presentation";
+import { syncScanToSessionHistory } from "@/lib/session-history";
 import { ScanResults, Severity } from "@/lib/types";
 
 const statTone: Record<Severity, string> = {
@@ -38,6 +40,7 @@ export default function ResultsPage({
   const [loading, setLoading] = useState(true);
   const [activeSeverity, setActiveSeverity] = useState<Severity | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [showPendingNotice, setShowPendingNotice] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,6 +51,7 @@ export default function ResultsPage({
         if (cancelled) return;
         setScan(response);
         setError(null);
+        syncScanToSessionHistory(response);
       } catch (caughtError) {
         if (cancelled) return;
         if (caughtError instanceof ApiError) {
@@ -69,6 +73,41 @@ export default function ResultsPage({
       clearInterval(interval);
     };
   }, [params.id]);
+
+  const reportPending = Boolean(scan && (scan.status !== "completed" || !scan.risk_score || !scan.report));
+  const completedModules = useMemo(() => {
+    if (!scan) {
+      return 0;
+    }
+
+    return Object.values(scan.modules).filter((module) =>
+      ["complete", "error", "skipped"].includes(module.status)
+    ).length;
+  }, [scan]);
+
+  useEffect(() => {
+    if (reportPending) {
+      setShowPendingNotice(true);
+    }
+  }, [reportPending]);
+
+  function handleDownload() {
+    setIsDownloading(true);
+    void getReportPdf(params.id)
+      .then(() => {
+        setError(null);
+      })
+      .catch((caughtError) => {
+        if (caughtError instanceof ApiError) {
+          setError(caughtError.message);
+          return;
+        }
+        setError("The PDF report could not be downloaded.");
+      })
+      .finally(() => {
+        setIsDownloading(false);
+      });
+  }
 
   if (loading) {
     return (
@@ -92,7 +131,9 @@ export default function ResultsPage({
             <p className="font-[family-name:var(--font-mono)] text-xs uppercase tracking-[0.3em] text-accentRed">
               Report Unavailable
             </p>
-            <h1 className="mt-4 text-3xl font-semibold text-white">DomainVitals couldn&apos;t load this report.</h1>
+            <h1 className="mt-4 text-3xl font-semibold text-white">
+              DomainVitals couldn&apos;t load this report.
+            </h1>
             <p className="mt-4 text-sm leading-7 text-textSecondary">{error}</p>
           </div>
         </section>
@@ -100,27 +141,158 @@ export default function ResultsPage({
     );
   }
 
-  if (scan.status !== "completed" || !scan.risk_score || !scan.report) {
+  if (reportPending) {
     return (
       <main className="min-h-screen">
         <Navbar />
-        <section className="mx-auto flex min-h-[calc(100vh-73px)] max-w-4xl items-center px-4 sm:px-6 lg:px-8">
-          <div className="panel w-full rounded-[2rem] p-8">
-            <LoadingPulse label="Waiting for final report" />
-            <h1 className="mt-6 text-3xl font-semibold text-white">The report is still being assembled.</h1>
-            <p className="mt-4 text-sm leading-7 text-textSecondary">
-              DomainVitals has your scan data, but the final scorecard and attacker narrative are not
-              ready yet.
-            </p>
-            <Link
-              className="mt-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold transition hover:border-accentBlue hover:text-white"
-              href={`/scan/${params.id}`}
-            >
-              Return to live scan
-              <RotateCw className="h-4 w-4" />
-            </Link>
+        <section className="px-4 py-8 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="panel rounded-[2.5rem] p-6 sm:p-8">
+              <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
+                <div>
+                  <p className="font-[family-name:var(--font-mono)] text-xs uppercase tracking-[0.3em] text-accentBlue">
+                    Report Finalizing
+                  </p>
+                  <h1 className="mt-4 text-3xl font-semibold text-white sm:text-5xl">{scan.domain}</h1>
+                  <p className="mt-4 max-w-2xl text-sm leading-7 text-textSecondary">
+                    The recon data is already in. DomainVitals is still packaging the scorecard,
+                    attacker narrative, and action plan for this scan.
+                  </p>
+                  <p className="mt-4 text-sm leading-7 text-textSecondary">
+                    Last update: {formatDateTime(scan.updated_at)}
+                  </p>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] px-5 py-4">
+                    <p className="font-[family-name:var(--font-mono)] text-[11px] uppercase tracking-[0.24em] text-textSecondary">
+                      Modules Complete
+                    </p>
+                    <p className="mt-3 text-3xl font-semibold text-white">
+                      {completedModules}/{Object.keys(scan.modules).length}
+                    </p>
+                  </div>
+                  <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] px-5 py-4">
+                    <p className="font-[family-name:var(--font-mono)] text-[11px] uppercase tracking-[0.24em] text-textSecondary">
+                      Findings Captured
+                    </p>
+                    <p className="mt-3 text-3xl font-semibold text-white">{scan.findings.length}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.9fr)]">
+              <div className="panel rounded-[2rem] p-6">
+                <LoadingPulse label="Waiting for final report" />
+                <h2 className="mt-6 text-2xl font-semibold text-white">
+                  Your scan is alive and still updating.
+                </h2>
+                <p className="mt-4 text-sm leading-7 text-textSecondary">
+                  Stay on this page and it will refresh automatically, or hop back to the live scan
+                  view if you want to watch the module animation finish out.
+                </p>
+
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <Link
+                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold transition hover:border-accentBlue hover:text-white"
+                    href={`/scan/${params.id}`}
+                  >
+                    Open live scan
+                    <RotateCw className="h-4 w-4" />
+                  </Link>
+                  <button
+                    className="inline-flex items-center gap-2 rounded-full bg-accentBlue px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500"
+                    onClick={() => setShowPendingNotice(true)}
+                    type="button"
+                  >
+                    Keep watching here
+                  </button>
+                </div>
+              </div>
+
+              <div className="panel rounded-[2rem] p-6">
+                <p className="font-[family-name:var(--font-mono)] text-xs uppercase tracking-[0.3em] text-accentAmber">
+                  Latest Module Status
+                </p>
+                <div className="mt-5 space-y-3">
+                  {Object.entries(scan.modules).map(([moduleKey, module]) => (
+                    <div
+                      className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] px-4 py-3"
+                      key={moduleKey}
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <p className="text-sm font-semibold text-white">
+                            {modulePresentation[moduleKey]?.label ?? module.name}
+                          </p>
+                          <p className="mt-1 text-xs text-textSecondary">
+                            {module.note || module.error || `Status: ${module.status}`}
+                          </p>
+                        </div>
+                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-textSecondary">
+                          {module.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </section>
+
+        <AnimatePresence>
+          {showPendingNotice ? (
+            <motion.div
+              animate={{ opacity: 1, y: 0 }}
+              className="fixed bottom-5 right-5 z-50 w-[min(26rem,calc(100%-2rem))] rounded-[1.75rem] border border-amber-500/20 bg-bgCard/95 p-5 shadow-2xl backdrop-blur-xl"
+              exit={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 14 }}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex gap-3">
+                  <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-300">
+                    <AlertTriangle className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="font-[family-name:var(--font-mono)] text-[11px] uppercase tracking-[0.24em] text-accentAmber">
+                      Final Report Pending
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-textPrimary">
+                      DomainVitals has the scan data already. The scorecard and attacker narrative are
+                      still being assembled in the background.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  className="rounded-full border border-white/10 bg-white/5 p-2 text-textSecondary transition hover:text-white"
+                  onClick={() => setShowPendingNotice(false)}
+                  type="button"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Link
+                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold transition hover:border-accentBlue hover:text-white"
+                  href={`/scan/${params.id}`}
+                >
+                  Open live scan
+                  <RotateCw className="h-4 w-4" />
+                </Link>
+                <button
+                  className="inline-flex items-center gap-2 rounded-full bg-accentBlue px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500"
+                  onClick={() => setShowPendingNotice(false)}
+                  type="button"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
       </main>
     );
   }
@@ -128,24 +300,6 @@ export default function ResultsPage({
   const visibleFindings = activeSeverity
     ? scan.findings.filter((finding) => finding.severity === activeSeverity)
     : scan.findings;
-
-  function handleDownload() {
-    setIsDownloading(true);
-    void getReportPdf(params.id)
-      .then(() => {
-        setError(null);
-      })
-      .catch((caughtError) => {
-        if (caughtError instanceof ApiError) {
-          setError(caughtError.message);
-          return;
-        }
-        setError("The PDF report could not be downloaded.");
-      })
-      .finally(() => {
-        setIsDownloading(false);
-      });
-  }
 
   return (
     <main className="min-h-screen">
@@ -155,7 +309,7 @@ export default function ResultsPage({
           <div className="panel rounded-[2.5rem] p-6 sm:p-8">
             <div className="flex flex-col gap-8 xl:flex-row xl:items-center xl:justify-between">
               <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-                <GradeDisplay grade={scan.risk_score.overall_grade} />
+                <GradeDisplay grade={scan.risk_score!.overall_grade} />
                 <div>
                   <p className="font-[family-name:var(--font-mono)] text-xs uppercase tracking-[0.3em] text-accentBlue">
                     DomainVitals Report Card
@@ -169,7 +323,7 @@ export default function ResultsPage({
 
               <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
                 <div className="panel rounded-[2rem] px-5 py-4">
-                  <ScoreGauge score={scan.risk_score.overall_score} />
+                  <ScoreGauge score={scan.risk_score!.overall_score} />
                 </div>
                 <div className="flex flex-col gap-3">
                   <button
@@ -224,7 +378,7 @@ export default function ResultsPage({
           <div className="mt-10 grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.9fr)]">
             <div className="space-y-6">
               <div className="grid gap-5 lg:grid-cols-2">
-                {scan.risk_score.category_scores.map((score) => (
+                {scan.risk_score!.category_scores.map((score) => (
                   <CategoryCard
                     findings={findingsForCategory(score, visibleFindings)}
                     key={score.name}
@@ -238,7 +392,7 @@ export default function ResultsPage({
                   Executive Summary
                 </p>
                 <p className="mt-4 text-sm leading-7 text-textSecondary sm:text-base">
-                  {scan.report.executive_summary}
+                  {scan.report!.executive_summary}
                 </p>
               </div>
             </div>
@@ -255,7 +409,7 @@ export default function ResultsPage({
                   Attacker&apos;s Perspective
                 </p>
                 <p className="mt-5 border-l-2 border-accentBlue/40 pl-4 text-sm leading-7 text-textSecondary sm:text-base">
-                  {scan.report.attacker_narrative}
+                  {scan.report!.attacker_narrative}
                 </p>
               </motion.blockquote>
 
@@ -264,7 +418,7 @@ export default function ResultsPage({
                   Action Items
                 </p>
                 <div className="mt-5 space-y-4">
-                  {scan.report.prioritized_action_items.map((item, index) => (
+                  {scan.report!.prioritized_action_items.map((item, index) => (
                     <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4" key={`${item.title}-${index}`}>
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -296,7 +450,7 @@ export default function ResultsPage({
               </div>
 
               <div className="rounded-[2rem] border border-white/8 bg-white/[0.03] p-5 text-sm leading-7 text-textSecondary">
-                {scan.report.disclaimer}
+                {scan.report!.disclaimer}
               </div>
             </div>
           </div>
