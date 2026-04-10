@@ -35,6 +35,11 @@ async def download_report(scan_id: str) -> Response:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(exc),
         ) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"PDF generation failed: {exc}",
+        ) from exc
 
     filename = f"{scan_result.domain}-domainvitals-report.pdf"
     return Response(

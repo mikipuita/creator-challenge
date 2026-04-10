@@ -62,6 +62,25 @@ async def run_port_scan(
             response.raise_for_status()
             payload: Dict[str, Any] = response.json()
     except httpx.HTTPStatusError as exc:
+        if exc.response.status_code in {401, 403}:
+            return ModuleResult(
+                name="open_ports",
+                status=ModuleStatus.SKIPPED,
+                findings=[],
+                data={"ip_address": ip_address, "ports": []},
+                note=(
+                    "Shodan denied the request. The API key may be invalid, restricted, or"
+                    " missing host-lookup access on the current Shodan plan."
+                ),
+            )
+        if exc.response.status_code == 404:
+            return ModuleResult(
+                name="open_ports",
+                status=ModuleStatus.COMPLETE,
+                findings=[],
+                data={"ip_address": ip_address, "ports": [], "services": [], "hostnames": []},
+                note="Shodan had no host record for this IP address.",
+            )
         return ModuleResult(
             name="open_ports",
             status=ModuleStatus.ERROR,

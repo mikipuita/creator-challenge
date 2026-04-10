@@ -36,7 +36,8 @@ export default function ResultsPage({
   params: { id: string };
 }) {
   const [scan, setScan] = useState<ScanResults | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [pageError, setPageError] = useState<string | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeSeverity, setActiveSeverity] = useState<Severity | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -50,14 +51,14 @@ export default function ResultsPage({
         const response = await getScanResults(params.id);
         if (cancelled) return;
         setScan(response);
-        setError(null);
+        setPageError(null);
         syncScanToSessionHistory(response);
       } catch (caughtError) {
         if (cancelled) return;
         if (caughtError instanceof ApiError) {
-          setError(caughtError.message);
+          setPageError(caughtError.message);
         } else {
-          setError("DomainVitals could not load the report.");
+          setPageError("DomainVitals could not load the report.");
         }
       } finally {
         if (!cancelled) {
@@ -95,14 +96,14 @@ export default function ResultsPage({
     setIsDownloading(true);
     void getReportPdf(params.id)
       .then(() => {
-        setError(null);
+        setDownloadError(null);
       })
       .catch((caughtError) => {
         if (caughtError instanceof ApiError) {
-          setError(caughtError.message);
+          setDownloadError(caughtError.message);
           return;
         }
-        setError("The PDF report could not be downloaded.");
+        setDownloadError("The PDF report could not be downloaded.");
       })
       .finally(() => {
         setIsDownloading(false);
@@ -122,7 +123,7 @@ export default function ResultsPage({
     );
   }
 
-  if (error || !scan) {
+  if (pageError || !scan) {
     return (
       <main className="min-h-screen">
         <Navbar />
@@ -134,7 +135,7 @@ export default function ResultsPage({
             <h1 className="mt-4 text-3xl font-semibold text-white">
               DomainVitals couldn&apos;t load this report.
             </h1>
-            <p className="mt-4 text-sm leading-7 text-textSecondary">{error}</p>
+            <p className="mt-4 text-sm leading-7 text-textSecondary">{pageError}</p>
           </div>
         </section>
       </main>
@@ -455,9 +456,9 @@ export default function ResultsPage({
             </div>
           </div>
 
-          {error ? (
+          {downloadError ? (
             <div className="mt-6 rounded-[1.5rem] border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-              {error}
+              {downloadError}
             </div>
           ) : null}
         </div>

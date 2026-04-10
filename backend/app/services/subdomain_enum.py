@@ -37,6 +37,25 @@ async def run_subdomain_enum(domain: str, timeout_seconds: float) -> ModuleResul
             response = await client.get(url, headers={"User-Agent": "DomainVitals/1.0"})
             response.raise_for_status()
             payload: List[Dict[str, Any]] = response.json()
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code in {401, 403, 429}:
+            return ModuleResult(
+                name="subdomains",
+                status=ModuleStatus.SKIPPED,
+                findings=[],
+                data={"subdomains": [], "count": 0},
+                note=(
+                    "crt.sh temporarily rejected the lookup request. Passive subdomain discovery"
+                    " was skipped for this scan."
+                ),
+            )
+        return ModuleResult(
+            name="subdomains",
+            status=ModuleStatus.ERROR,
+            findings=[],
+            data={"subdomains": [], "count": 0},
+            error=f"crt.sh lookup failed with status {exc.response.status_code}.",
+        )
     except httpx.HTTPError as exc:
         return ModuleResult(
             name="subdomains",
@@ -141,5 +160,9 @@ async def run_subdomain_enum(domain: str, timeout_seconds: float) -> ModuleResul
         status=ModuleStatus.COMPLETE,
         findings=findings,
         data={"subdomains": subdomains, "count": len(subdomains)},
-        note=f"Discovered {len(subdomains)} unique subdomains from certificate logs.",
+        note=(
+            f"Discovered {len(subdomains)} unique subdomains from certificate logs."
+            if subdomains
+            else "No public crt.sh certificate records were returned for this domain."
+        ),
     )

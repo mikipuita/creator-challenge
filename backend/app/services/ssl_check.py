@@ -11,6 +11,37 @@ from typing import Any, Dict, List
 from app.models.scan import Finding, ModuleResult, ModuleStatus, Severity
 
 
+def _cert_time_to_datetime(value: str) -> datetime:
+    """Convert an SSL notBefore/notAfter string into a timezone-aware datetime."""
+
+    cert_time_to_seconds = getattr(ssl, "cert_time_to_seconds", None)
+    if callable(cert_time_to_seconds):
+        return datetime.fromtimestamp(cert_time_to_seconds(value), tz=timezone.utc)
+
+    return datetime.strptime(value, "%b %d %H:%M:%S %Y %Z").replace(tzinfo=timezone.utc)
+
+
+def _hostname_matches(details: Dict[str, Any], domain: str) -> None:
+    """Validate certificate hostname coverage with a compatibility fallback."""
+
+    match_hostname = getattr(ssl, "match_hostname", None)
+    certificate_error = getattr(ssl, "CertificateError", ValueError)
+    if callable(match_hostname):
+        match_hostname(details["certificate"], domain)
+        return
+
+    sans = [name.lower() for name in details.get("sans", [])]
+    domain = domain.lower()
+    if domain in sans:
+        return
+
+    for name in sans:
+        if name.startswith("*.") and domain.endswith(name[1:]):
+            return
+
+    raise certificate_error(f"hostname {domain!r} does not match certificate SANs {sans!r}")
+
+
 def _fetch_certificate_details(domain: str) -> Dict[str, Any]:
     """Open a TLS connection and extract certificate metadata."""
 
@@ -71,8 +102,7 @@ async def run_ssl_check(domain: str) -> ModuleResult:
     not_after = None
     days_until_expiry = None
     if not_after_raw:
-        expiry_seconds = ssl.cert_time_to_seconds(not_after_raw)
-        not_after = datetime.fromtimestamp(expiry_seconds, tz=timezone.utc)
+        not_after = _cert_time_to_datetime(not_after_raw)
         days_until_expiry = (not_after - datetime.now(timezone.utc)).days
         if days_until_expiry < 0:
             findings.append(
@@ -160,9 +190,10 @@ async def run_ssl_check(domain: str) -> ModuleResult:
             )
         )
 
+    certificate_error = getattr(ssl, "CertificateError", ValueError)
     try:
-        ssl.match_hostname(details["certificate"], domain)
-    except ssl.CertificateError as exc:
+        _hostname_matches(details, domain)
+    except certificate_error as exc:
         findings.append(
             Finding(
                 title="Certificate hostname mismatch detected",
