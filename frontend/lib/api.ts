@@ -3,6 +3,7 @@ import { ScanResults, StartScanResponse } from "@/lib/types";
 const REQUEST_TIMEOUT_MS = 30_000;
 const SLOW_START_THRESHOLD_MS = 5_000;
 const LOCAL_API_URL = "http://localhost:8000";
+const PRODUCTION_PROXY_PATH = "/api";
 
 function getEnvironmentApiUrl(): string {
   return process.env.NEXT_PUBLIC_API_URL ?? LOCAL_API_URL;
@@ -17,8 +18,11 @@ export function getApiBaseUrl(): string {
 
   const hostname = window.location.hostname;
   const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
-  const resolvedBase = isLocalhost ? LOCAL_API_URL : configured;
-  return resolvedBase.endsWith("/api") ? resolvedBase : `${resolvedBase}/api`;
+  if (!isLocalhost) {
+    return PRODUCTION_PROXY_PATH;
+  }
+
+  return `${LOCAL_API_URL}/api`;
 }
 
 class ApiError extends Error {
@@ -132,7 +136,7 @@ export async function getScanResults(scanId: string): Promise<ScanResults> {
 export async function getReportPdf(scanId: string): Promise<void> {
   const response = await fetchWithTimeout(`${getApiBaseUrl()}/report/${scanId}/pdf`, {
     cache: "no-store"
-  });
+  }, 60_000);
 
   if (!response.ok) {
     let message = "Unable to download PDF report.";

@@ -48,17 +48,8 @@ function ModuleStatusCard({
   const skipped = module.status === "skipped";
 
   return (
-    <motion.div
-      animate={scanning ? { opacity: [0.88, 1, 0.88] } : { opacity: 1 }}
+    <div
       className={`relative h-full min-h-[13.5rem] rounded-[2rem] border px-5 py-5 transition-colors duration-300 ${moduleCardTone(module.status)}`}
-      initial={{ opacity: 0, y: 18 }}
-      transition={{
-        duration: scanning ? 2.2 : 0.35,
-        repeat: scanning ? Number.POSITIVE_INFINITY : 0,
-        ease: "easeInOut"
-      }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.2 }}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -77,7 +68,7 @@ function ModuleStatusCard({
                 : skipped
                   ? "bg-amber-400/20 text-amber-200"
                   : scanning
-                  ? "animate-pulse bg-blue-400/20 text-blue-300"
+                  ? "bg-blue-400/20 text-blue-300 ring-1 ring-blue-300/30"
                   : "bg-slate-500/20 text-slate-300"
           }`}
         >
@@ -95,7 +86,7 @@ function ModuleStatusCard({
       <p className="mt-4 line-clamp-3 text-xs leading-6 text-textSecondary">
         {module.error || module.note || `Status: ${module.status}`}
       </p>
-    </motion.div>
+    </div>
   );
 }
 
