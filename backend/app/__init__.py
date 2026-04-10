@@ -1,0 +1,1 @@
+"""DomainVitals backend application package."""

@@ -1,0 +1,175 @@
+{
+  "executive_summary": "DomainVitals reviewed demo.threatlens.io and assigned it an overall score of 72 out of 100, which places the fictional company in the middle of the pack. The main site looks professionally hosted and uses HTTPS by default, but several internet-facing clues would still give an attacker a practical starting point.\n\nThe biggest risks sit in email trust, legacy infrastructure, and public administration paths. In plain terms, the business has done enough to look credible online, but not enough to make impersonation, account targeting, and legacy-system abuse feel expensive for an attacker. That makes this an ideal example of a small business that is not reckless, but still too easy to probe.\n\nThe good news is that the highest-value fixes are concrete and achievable. Tightening email authentication, retiring or repairing older subdomains, protecting WordPress administration, and removing legacy file transfer access would substantially reduce the attack surface without a full platform rebuild.",
+  "attacker_narrative": "If I were targeting demo.threatlens.io, the first thing I'd notice is that the business looks real, active, and worth impersonating. The website redirects to HTTPS, the branding is consistent, and the mail setup points to a mainstream provider, which tells me this is the kind of company customers already trust.\n\nMy next move would be email abuse. There is no DMARC policy (an email rule that tells inbox providers how to handle messages that pretend to come from your domain), which is like seeing a company mailbox with no guard at the front desk. I could test phishing messages that look like invoices, password resets, or shipping alerts and expect less resistance from recipient systems.\n\nFrom there, I would look for aging infrastructure. The legacy billing subdomain still shows signs of an expired certificate, which is the digital equivalent of finding a side door with old locks and no one checking it. I would also see an exposed WordPress login page, missing HSTS (a browser rule that forces secure connections), and a public FTP service. None of these guarantees a breach by itself, but together they tell me where to spend my time first: impersonation, legacy access, and weakly protected administration paths.",
+  "category_breakdowns": [
+    {
+      "title": "DNS",
+      "summary": "Grade B. Core DNS records are present and the domain looks stably hosted, but wildcard DNS still broadens the attack surface more than necessary.",
+      "findings": [
+        "Wildcard DNS is enabled (medium): Random subdomains resolve successfully, which is like having a building where many unlabeled doors still open even if nobody remembers what is behind them. Impact if ignored: Forgotten hosts can stay reachable longer than expected and become easier to abuse.",
+        "Cloud-managed DNS is in use (info): The domain uses a mainstream managed DNS provider, which is a healthy baseline. Impact if ignored: This is mainly informational, but attackers can still use provider clues to focus their research."
+      ],
+      "remediation_steps": [
+        "Review whether wildcard DNS is still needed for business operations.",
+        "Reduce wildcard behavior to the smallest practical scope.",
+        "Protect registrar and DNS-provider accounts with multi-factor authentication."
+      ]
+    },
+    {
+      "title": "Subdomains",
+      "summary": "Grade B. Public certificate records reveal non-production naming that gives attackers extra context about the environment.",
+      "findings": [
+        "Staging subdomain is visible in certificate logs (info): Certificate transparency records reveal a staging hostname, which is like leaving a floor plan pinned to the lobby wall. Impact if ignored: Attackers may look for weaker controls, older builds, or forgotten credentials on pre-production systems."
+      ],
+      "remediation_steps": [
+        "Restrict staging systems to VPN or staff-only access.",
+        "Remove public DNS and certificate exposure for non-public environments when possible.",
+        "Review subdomain inventory quarterly so abandoned names do not linger."
+      ]
+    },
+    {
+      "title": "SSL/TLS",
+      "summary": "Grade D. The primary site appears modern, but a legacy billing host still shows signs of an expired certificate and weak lifecycle management.",
+      "findings": [
+        "Expired SSL certificate on legacy billing subdomain (critical): The billing subdomain presents evidence of an expired certificate, which is like finding an old storefront still open even though the alarm has been disconnected. Impact if ignored: Users may click through warnings, sensitive workflows may keep running on neglected infrastructure, and attackers gain a strong signal that the host is not actively maintained."
+      ],
+      "remediation_steps": [
+        "Confirm whether the legacy billing host is still needed.",
+        "If it is active, replace the expired certificate immediately and verify the full chain.",
+        "If it is retired, remove the DNS entry and fully decommission the underlying service."
+      ]
+    },
+    {
+      "title": "Email Security",
+      "summary": "Grade D. Email is the weakest visible control area because the domain lacks DMARC enforcement and still uses a softer SPF policy.",
+      "findings": [
+        "No DMARC policy configured (critical): DMARC is missing, which is like leaving your company mailbox unlocked so anyone can drop in letters that appear official. Impact if ignored: Attackers can send phishing or invoice messages that look like they came from the business.",
+        "SPF policy uses softfail (medium): The domain uses a `~all` SPF ending instead of a strict `-all`, which is more like a warning sign than a locked gate. Impact if ignored: Some spoofed messages may face less resistance than they should.",
+        "DKIM is enabled for Google Workspace (info): DKIM signing is present for at least one mail path, which is a positive trust signal. Impact if ignored: This is helpful, but it does not compensate for missing DMARC."
+      ],
+      "remediation_steps": [
+        "Publish a DMARC record at `_dmarc.demo.threatlens.io` and start with monitoring mode.",
+        "Audit all approved mail senders for the domain.",
+        "Move SPF from softfail to hard fail once the sender inventory is complete."
+      ]
+    },
+    {
+      "title": "HTTP Headers",
+      "summary": "Grade C. The website redirects to HTTPS, but several browser hardening headers are still missing or incomplete.",
+      "findings": [
+        "HSTS is missing (high): The browser is not told to insist on HTTPS for future visits, which is like asking visitors to use the front door but never actually locking the side entrance. Impact if ignored: Users remain more exposed to downgrade and first-visit interception tricks.",
+        "Content-Security-Policy is missing (medium): The site does not define what scripts and assets the browser should trust, similar to letting outside contractors walk onto a job site without a list of approved vendors. Impact if ignored: Browser-based attacks like malicious script injection become easier to exploit if another weakness exists.",
+        "Referrer-Policy is missing (low): Browsers may send more page information than necessary when visitors click away, which is like printing internal notes on the outside of an envelope. Impact if ignored: Internal paths or tracking parameters may leak to third parties.",
+        "HTTP redirects correctly to HTTPS (info): The site does redirect visitors to the secure version automatically, which is a healthy baseline. Impact if ignored: This is a positive control, but it is strongest when paired with HSTS."
+      ],
+      "remediation_steps": [
+        "Enable `Strict-Transport-Security` on the primary site.",
+        "Deploy a Content Security Policy in report-only mode, then enforce it after testing.",
+        "Set a modern `Referrer-Policy` such as `strict-origin-when-cross-origin`."
+      ]
+    },
+    {
+      "title": "Open Ports",
+      "summary": "Grade C. Most public services look limited, but a legacy FTP service remains exposed and gives attackers a low-friction target.",
+      "findings": [
+        "FTP service is exposed to the internet (high): Public FTP is like leaving an old loading dock open after switching the rest of the building to secure entrances. Impact if ignored: Attackers may probe for weak passwords, intercept outdated workflows, or pivot through a legacy file-transfer system."
+      ],
+      "remediation_steps": [
+        "Retire public FTP if the business no longer depends on it.",
+        "If file transfer is still required, move to SFTP or another encrypted alternative.",
+        "Restrict any remaining transfer service behind a VPN or IP allowlist."
+      ]
+    },
+    {
+      "title": "Tech Stack",
+      "summary": "Grade C. The public application reveals enough about its underlying stack to make targeted probing easier, especially around WordPress administration.",
+      "findings": [
+        "WordPress admin login is publicly reachable (high): The standard WordPress login path is easy to identify, which is like posting a sign that says exactly where the staff entrance is. Impact if ignored: Attackers can focus on credential attacks, plugin abuse, or password reuse at the most obvious administrative path.",
+        "Outdated WordPress version appears to be disclosed (medium): Public metadata suggests an older WordPress version, which is like labeling a lock with the year it was made. Impact if ignored: Attackers can match visible version clues to known weaknesses faster.",
+        "Server version disclosure in response headers (low): Public headers reveal implementation detail about the web stack. Impact if ignored: Attackers gain a little less guesswork and a little more targeting precision."
+      ],
+      "remediation_steps": [
+        "Restrict `/wp-login.php` and `/wp-admin` behind MFA, SSO, or IP filtering.",
+        "Update WordPress core, themes, and plugins to current supported versions.",
+        "Remove unnecessary version banners from `Server`, `X-Powered-By`, and generator tags."
+      ]
+    }
+  ],
+  "prioritized_action_items": [
+    {
+      "title": "Publish a DMARC policy for the domain",
+      "category": "Email Security",
+      "priority": "critical",
+      "difficulty": "Easy",
+      "rationale": "Without DMARC, attackers can impersonate the company in phishing and invoice fraud campaigns. Estimated effort: 30-45 minutes.",
+      "steps": [
+        "Create a DMARC TXT record at `_dmarc.demo.threatlens.io`.",
+        "Start with `p=none` to collect reports without blocking legitimate mail.",
+        "Move to `p=quarantine` or `p=reject` once approved senders are confirmed."
+      ]
+    },
+    {
+      "title": "Retire or repair the legacy billing subdomain",
+      "category": "SSL/TLS",
+      "priority": "critical",
+      "difficulty": "Medium",
+      "rationale": "The expired certificate on the billing host strongly suggests an aging or abandoned system. Estimated effort: 1-2 hours.",
+      "steps": [
+        "Confirm whether `legacy-billing.demo.threatlens.io` is still part of live operations.",
+        "If it is active, issue a new certificate and validate the complete TLS chain.",
+        "If it is not needed, remove DNS, decommission the service, and archive any business data safely."
+      ]
+    },
+    {
+      "title": "Protect WordPress administration paths",
+      "category": "Tech Stack",
+      "priority": "high",
+      "difficulty": "Medium",
+      "rationale": "A visible admin login gives attackers an obvious place to focus credential attacks. Estimated effort: 1-2 hours.",
+      "steps": [
+        "Require multi-factor authentication for all WordPress administrator accounts.",
+        "Restrict `/wp-login.php` and `/wp-admin` to trusted staff or IP ranges where possible.",
+        "Review plugins and remove any that are outdated or unused."
+      ]
+    },
+    {
+      "title": "Enable HSTS and baseline browser hardening headers",
+      "category": "HTTP Headers",
+      "priority": "high",
+      "difficulty": "Easy",
+      "rationale": "Missing browser security headers leave routine web traffic less protected than it should be. Estimated effort: 30-60 minutes.",
+      "steps": [
+        "Add `Strict-Transport-Security` to the HTTPS response.",
+        "Deploy a report-only Content Security Policy and review violations.",
+        "Set a modern Referrer-Policy to reduce unnecessary URL leakage."
+      ]
+    },
+    {
+      "title": "Remove public FTP access",
+      "category": "Open Ports",
+      "priority": "high",
+      "difficulty": "Medium",
+      "rationale": "Internet-facing FTP is a classic legacy foothold and adds risk without modern transport protections. Estimated effort: 1-3 hours.",
+      "steps": [
+        "Confirm who still uses the FTP workflow.",
+        "Replace it with SFTP or another encrypted file-transfer option.",
+        "Disable the public FTP service or restrict it behind a VPN."
+      ]
+    },
+    {
+      "title": "Tighten wildcard DNS and staging exposure",
+      "category": "DNS",
+      "priority": "medium",
+      "difficulty": "Medium",
+      "rationale": "Wildcard DNS and visible staging infrastructure make the environment easier to map. Estimated effort: 1-2 hours.",
+      "steps": [
+        "Review every public subdomain and confirm it is still needed.",
+        "Reduce or remove wildcard DNS behavior where possible.",
+        "Move staging environments behind private access controls."
+      ]
+    }
+  ],
+  "generated_at": "2026-04-09T20:30:00Z",
+  "model": "demo-fixture",
+  "disclaimer": "This demo report is intentionally fictional but structured to reflect the kind of passive security findings a real small business might need to review with its IT consultant or managed service provider."
+}
