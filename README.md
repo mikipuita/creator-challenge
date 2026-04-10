@@ -96,7 +96,7 @@ Open [http://localhost:3000](http://localhost:3000).
 4. Render auto-detects the `render.yaml` config.
 5. Add environment variables: `OPENAI_API_KEY` (required), `SHODAN_API_KEY` (optional).
 6. Set `DEMO_MODE=true` if you want the demo scan available.
-7. Deploy and note your URL, for example `https://threatlens-api.onrender.com`.
+7. Deploy and note your URL, for example `https://domainvitals-api.onrender.com`.
 
 ### Deploy Frontend to Vercel (Free)
 
