@@ -183,7 +183,7 @@ Use "JetBrains Mono" for monospace/technical elements, "Plus Jakarta Sans" for h
 - Background: subtle animated grid pattern (CSS only, no canvas) with a radial gradient glow behind the input
 - Trust bar below hero: "Checks 7 attack vectors" with small icons for DNS, SSL, Email, Headers, Ports, Subdomains, Tech Stack
 - How It Works section: 3 step cards with icons
-  1. "Enter Your Domain" 
+  1. "Enter Your Domain"
   2. "We Run 7 Passive Recon Checks"
   3. "Get Your Security Report Card"
 - Footer: "Built for the Codex Creator Challenge" + GitHub link placeholder
@@ -333,7 +333,7 @@ Build the complete pdf_generator.py for ThreatLens using Python's reportlab libr
 
 ### Color Scheme
 NAVY = HexColor("#0a0e1a")
-DARK_BLUE = HexColor("#111827")  
+DARK_BLUE = HexColor("#111827")
 ACCENT_BLUE = HexColor("#3b82f6")
 ACCENT_AMBER = HexColor("#f59e0b")
 RED = HexColor("#ef4444")
@@ -498,7 +498,7 @@ Add a "demo mode" to ThreatLens so it works perfectly in a live presentation eve
 
 ### Backend Changes
 1. Add a DEMO_MODE=true environment variable option
-2. When DEMO_MODE is true and domain is "demo.threatlens.io":
+2. When DEMO_MODE is true and domain is "demo.domainvitals.io":
    - Skip all real API calls
    - Return realistic pre-built scan results for a fictional company
    - Include a mix of findings: 2 critical, 3 high, 4 medium, 2 low, 3 info
@@ -508,11 +508,11 @@ Add a "demo mode" to ThreatLens so it works perfectly in a live presentation eve
 
 ### Frontend Changes
 1. On the landing page, add a subtle link below the input: "Try a demo scan →"
-2. Clicking it auto-fills "demo.threatlens.io" and triggers the scan
+2. Clicking it auto-fills "demo.domainvitals.io" and triggers the scan
 3. The scanning page should show the same progressive animation
 
 ### Pre-built Demo Report
-Write a complete, realistic AI-generated report for "demo.threatlens.io" that:
+Write a complete, realistic AI-generated report for "demo.domainvitals.io" that:
 - Scores a C (72/100)
 - Has a compelling attacker narrative
 - Shows a variety of finding severities
@@ -532,7 +532,7 @@ Build all changes completely.
 2. **Use Codex in "full repo" mode** if available — give it the whole project context.
 3. **After each prompt**, review the output and fix any import path mismatches before moving on.
 4. **Test locally** after Prompts 1-2 before moving to 3+. The scan flow should work end-to-end with at least DNS + SSL checks before you layer on the AI report.
-5. **For the 3-minute pitch**: demo `demo.threatlens.io` first (reliable), then live-scan a real domain (impressive). Always have the demo as backup.
+5. **For the 3-minute pitch**: demo `demo.domainvitals.io` first (reliable), then live-scan a real domain (impressive). Always have the demo as backup.
 
 ---
 

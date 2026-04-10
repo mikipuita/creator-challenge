@@ -1,6 +1,6 @@
 {
-  "executive_summary": "DomainVitals reviewed demo.threatlens.io and assigned it an overall score of 72 out of 100, which places the fictional company in the middle of the pack. The main site looks professionally hosted and uses HTTPS by default, but several internet-facing clues would still give an attacker a practical starting point.\n\nThe biggest risks sit in email trust, legacy infrastructure, and public administration paths. In plain terms, the business has done enough to look credible online, but not enough to make impersonation, account targeting, and legacy-system abuse feel expensive for an attacker. That makes this an ideal example of a small business that is not reckless, but still too easy to probe.\n\nThe good news is that the highest-value fixes are concrete and achievable. Tightening email authentication, retiring or repairing older subdomains, protecting WordPress administration, and removing legacy file transfer access would substantially reduce the attack surface without a full platform rebuild.",
-  "attacker_narrative": "If I were targeting demo.threatlens.io, the first thing I'd notice is that the business looks real, active, and worth impersonating. The website redirects to HTTPS, the branding is consistent, and the mail setup points to a mainstream provider, which tells me this is the kind of company customers already trust.\n\nMy next move would be email abuse. There is no DMARC policy (an email rule that tells inbox providers how to handle messages that pretend to come from your domain), which is like seeing a company mailbox with no guard at the front desk. I could test phishing messages that look like invoices, password resets, or shipping alerts and expect less resistance from recipient systems.\n\nFrom there, I would look for aging infrastructure. The legacy billing subdomain still shows signs of an expired certificate, which is the digital equivalent of finding a side door with old locks and no one checking it. I would also see an exposed WordPress login page, missing HSTS (a browser rule that forces secure connections), and a public FTP service. None of these guarantees a breach by itself, but together they tell me where to spend my time first: impersonation, legacy access, and weakly protected administration paths.",
+  "executive_summary": "DomainVitals reviewed demo.domainvitals.io and assigned it an overall score of 72 out of 100, which places the fictional company in the middle of the pack. The main site looks professionally hosted and uses HTTPS by default, but several internet-facing clues would still give an attacker a practical starting point.\n\nThe biggest risks sit in email trust, legacy infrastructure, and public administration paths. In plain terms, the business has done enough to look credible online, but not enough to make impersonation, account targeting, and legacy-system abuse feel expensive for an attacker. That makes this an ideal example of a small business that is not reckless, but still too easy to probe.\n\nThe good news is that the highest-value fixes are concrete and achievable. Tightening email authentication, retiring or repairing older subdomains, protecting WordPress administration, and removing legacy file transfer access would substantially reduce the attack surface without a full platform rebuild.",
+  "attacker_narrative": "If I were targeting demo.domainvitals.io, the first thing I'd notice is that the business looks real, active, and worth impersonating. The website redirects to HTTPS, the branding is consistent, and the mail setup points to a mainstream provider, which tells me this is the kind of company customers already trust.\n\nMy next move would be email abuse. There is no DMARC policy (an email rule that tells inbox providers how to handle messages that pretend to come from your domain), which is like seeing a company mailbox with no guard at the front desk. I could test phishing messages that look like invoices, password resets, or shipping alerts and expect less resistance from recipient systems.\n\nFrom there, I would look for aging infrastructure. The legacy billing subdomain still shows signs of an expired certificate, which is the digital equivalent of finding a side door with old locks and no one checking it. I would also see an exposed WordPress login page, missing HSTS (a browser rule that forces secure connections), and a public FTP service. None of these guarantees a breach by itself, but together they tell me where to spend my time first: impersonation, legacy access, and weakly protected administration paths.",
   "category_breakdowns": [
     {
       "title": "DNS",
@@ -48,7 +48,7 @@
         "DKIM is enabled for Google Workspace (info): DKIM signing is present for at least one mail path, which is a positive trust signal. Impact if ignored: This is helpful, but it does not compensate for missing DMARC."
       ],
       "remediation_steps": [
-        "Publish a DMARC record at `_dmarc.demo.threatlens.io` and start with monitoring mode.",
+        "Publish a DMARC record at `_dmarc.demo.domainvitals.io` and start with monitoring mode.",
         "Audit all approved mail senders for the domain.",
         "Move SPF from softfail to hard fail once the sender inventory is complete."
       ]
@@ -103,7 +103,7 @@
       "difficulty": "Easy",
       "rationale": "Without DMARC, attackers can impersonate the company in phishing and invoice fraud campaigns. Estimated effort: 30-45 minutes.",
       "steps": [
-        "Create a DMARC TXT record at `_dmarc.demo.threatlens.io`.",
+        "Create a DMARC TXT record at `_dmarc.demo.domainvitals.io`.",
         "Start with `p=none` to collect reports without blocking legitimate mail.",
         "Move to `p=quarantine` or `p=reject` once approved senders are confirmed."
       ]
@@ -115,7 +115,7 @@
       "difficulty": "Medium",
       "rationale": "The expired certificate on the billing host strongly suggests an aging or abandoned system. Estimated effort: 1-2 hours.",
       "steps": [
-        "Confirm whether `legacy-billing.demo.threatlens.io` is still part of live operations.",
+        "Confirm whether `legacy-billing.demo.domainvitals.io` is still part of live operations.",
         "If it is active, issue a new certificate and validate the complete TLS chain.",
         "If it is not needed, remove DNS, decommission the service, and archive any business data safely."
       ]

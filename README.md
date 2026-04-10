@@ -2,135 +2,154 @@
 
 See your business through a hacker's eyes.
 
-DomainVitals is an AI-powered attack surface monitor built for non-technical small business owners. Enter a domain, run seven passive recon checks in parallel, and get a clean security report card with plain-English explanations, attacker-perspective narrative, prioritized fixes, and a downloadable PDF you can share with a business partner or IT consultant.
+DomainVitals is an AI-assisted, passive attack-surface scanner for small businesses. Enter a domain and it runs seven recon checks in parallel, calculates a risk score, generates a plain-English report, and lets you download a PDF summary.
 
-[Screenshot of results dashboard]
+## Features
 
-![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python&logoColor=white)
-![Next.js](https://img.shields.io/badge/Next.js-14-000000?style=flat-square&logo=nextdotjs&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-API-009688?style=flat-square&logo=fastapi&logoColor=white)
-![OpenAI](https://img.shields.io/badge/OpenAI-gpt--4o-412991?style=flat-square&logo=openai&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white)
+- 7 passive recon modules: DNS, subdomains, SSL/TLS, email security, HTTP headers, open ports, tech fingerprinting
+- Live scan progress UI with per-module status updates
+- Weighted security score with letter grade (A-F)
+- AI-generated narrative report (with deterministic fallback if no OpenAI key)
+- PDF export endpoint for completed scans
+- Demo mode for reliable presentations: `demo.domainvitals.io`
 
-## What It Does
+## Stack
 
-- DNS recon: checks A, AAAA, MX, TXT, NS, CNAME, and SOA records for exposure patterns.
-- Subdomain discovery: reviews certificate transparency logs for publicly visible subdomains.
-- SSL/TLS inspection: analyzes certificate validity, issuer, SANs, and protocol posture.
-- Email security review: checks SPF, DKIM, and DMARC configuration quality.
-- HTTP header analysis: inspects browser security headers and HTTP-to-HTTPS redirect behavior.
-- Open port review: uses Shodan to flag risky internet-facing services when an API key is available.
-- Tech stack fingerprinting: identifies visible server, CMS, framework, and version disclosure clues.
+- Frontend: Next.js 14, TypeScript, Tailwind CSS, Framer Motion
+- Backend: FastAPI, Pydantic, ReportLab
+- Integrations: OpenAI API (optional), Shodan API (optional), crt.sh
+- Runtime: Docker Compose or local dev servers
 
-DomainVitals is 100% passive. It does not perform intrusive exploitation, brute-force testing, or active vulnerability scanning, which keeps it away from legal gray areas while still surfacing meaningful internet-facing risk.
+## Project Layout
 
-Results typically return in under 60 seconds.
-
-For live presentations, you can enable `DEMO_MODE=true` and run a polished fictional scan against `demo.threatlens.io` even without live recon access.
-
-## Why It Matters
-
-- 43% of cyberattacks target small businesses.
-- 60% of small businesses go out of business within 6 months of a breach.
-
-Small businesses deserve enterprise-grade security visibility without needing an enterprise security team. DomainVitals helps owners understand what an attacker would see first, why it matters, and what to fix next.
+```text
+.
+├── backend/
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── config.py
+│   │   ├── routers/
+│   │   ├── services/
+│   │   ├── models/
+│   │   └── utils/
+│   └── requirements.txt
+├── frontend/
+│   ├── app/
+│   ├── components/
+│   ├── lib/
+│   └── package.json
+└── docker-compose.yml
+```
 
 ## How It Works
 
-```mermaid
-flowchart LR
-    A["Domain Input"] --> B["Parallel Recon Engine"]
-    B --> C["DNS / Email / TLS / Headers"]
-    B --> D["Subdomains / Shodan / Tech Fingerprint"]
-    C --> E["Risk Scoring"]
-    D --> E
-    E --> F["OpenAI Report Analysis"]
-    F --> G["Web Dashboard + PDF Report"]
-```
+1. `POST /api/scan` accepts a domain and creates a `scan_id`.
+2. Backend launches parallel passive recon tasks via `asyncio.gather`.
+3. Results are aggregated into in-memory scan state.
+4. Risk score is calculated from category weights.
+5. AI report is generated (or fallback narrative if OpenAI is unavailable).
+6. Frontend polls scan progress and shows final report at `/results/{id}`.
 
-Flow: `Domain Input → Parallel Recon → AI Analysis → Report Generation`
+## Prerequisites
 
-## Quick Start
+- Docker Desktop (for container workflow)
+- Node.js 20+ and npm (for local frontend)
+- Python 3.12+ (for local backend)
 
-### Prerequisites
+## Quick Start (Docker)
 
-- Docker
-- An OpenAI API key
-
-### Run It
+From the repository root:
 
 ```bash
-git clone https://github.com/yourusername/domainvitals.git
-cd domainvitals
-echo "OPENAI_API_KEY=your-key-here" > .env
+cat > .env << 'EOF'
+OPENAI_API_KEY=your_openai_key_here
+SHODAN_API_KEY=
+DEMO_MODE=true
+EOF
+
 docker-compose up --build
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open:
 
-## Tech Stack
+- App UI: http://localhost:3000
+- Backend health: http://localhost:8000/api/health
 
-| Layer | Technology | Purpose |
-| --- | --- | --- |
-| Frontend | Next.js 14 + TypeScript + Tailwind CSS + Framer Motion | Responsive scan flow and report dashboard |
-| Backend | Python 3.12 + FastAPI | Scan orchestration, APIs, PDF generation |
-| AI | OpenAI API (`gpt-4o`) | Plain-English report generation |
-| Recon | `dnspython`, `httpx`, `ssl`, `socket`, crt.sh, Shodan | Passive attack surface collection |
-| Reporting | ReportLab | Downloadable PDF security report |
-| Deployment | Docker, Docker Compose, Vercel, Render | Local and hosted runtime |
+Notes:
 
-## Architecture Notes
+- `OPENAI_API_KEY` is optional. Without it, reports are generated by deterministic fallback logic.
+- `SHODAN_API_KEY` is optional. Without it, open-port checks are skipped gracefully.
 
-- `frontend/` contains the landing page, live scan visualization, and results dashboard.
-- `backend/` contains the FastAPI service, scan modules, AI reporter, scoring logic, and PDF generator.
-- `docker-compose.yml` wires both services together for local development.
-- `backend/render.yaml` and `frontend/vercel.json` support free hosted deployment.
+## Local Development (Without Docker)
 
-## Deploy Your Own
+### 1) Backend
 
-### Deploy Backend to Render (Free)
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 
-1. Push the `backend/` folder to a GitHub repo.
-2. Go to Render and create a new Web Service.
-3. Connect your GitHub repo and select the backend directory.
-4. Render auto-detects the `render.yaml` config.
-5. Add environment variables: `OPENAI_API_KEY` (required), `SHODAN_API_KEY` (optional).
-6. Set `DEMO_MODE=true` if you want the demo scan available.
-7. Deploy and note your URL, for example `https://domainvitals-api.onrender.com`.
+# Optional env vars
+export OPENAI_API_KEY=your_openai_key_here
+export SHODAN_API_KEY=
+export DEMO_MODE=true
+export ALLOWED_ORIGINS=http://localhost:3000
 
-### Deploy Frontend to Vercel (Free)
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
 
-1. Go to Vercel and import your project.
-2. Connect your GitHub repo and select the frontend directory.
-3. Add environment variable: `NEXT_PUBLIC_API_URL` = your Render backend URL.
-4. Deploy and your app is live.
+### 2) Frontend
 
-### Post-Deploy Checklist
+In a second terminal:
 
-- Set `ALLOWED_ORIGINS` on Render to your Vercel URL, for example `https://your-app.vercel.app`.
-- Test the demo scan by entering `demo.threatlens.io`.
-- Test a real domain scan.
-- Verify PDF download works.
-- Share the Vercel URL in your Codex Creator Challenge submission.
+```bash
+cd frontend
+npm install
+echo 'NEXT_PUBLIC_API_URL=http://localhost:8000' > .env.local
+npm run dev
+```
 
-### Important Notes
+Then open http://localhost:3000.
 
-- Render free tier spins down after 15 minutes of inactivity. The first request after sleep can take around 30 seconds.
-- For a pitch demo, hit the backend health check URL about 2 minutes before presenting to wake it up.
-- The frontend includes friendly cold-start messaging like “Waking up the server...” for that first slow request.
-- Vercel and Render free tiers are more than sufficient for a demo or competition submission.
+## Environment Variables
 
-## Built For
+### Backend
 
-This project was built for the OpenAI x Handshake Codex Creator Challenge (2026).
+- `OPENAI_API_KEY`: Optional. Enables LLM report generation.
+- `OPENAI_MODEL`: Optional. Defaults to `gpt-4o`.
+- `SHODAN_API_KEY`: Optional. Enables open-port enrichment.
+- `DEMO_MODE`: Optional (`false` by default). Enables demo scan behavior.
+- `ALLOWED_ORIGINS`: Optional. Comma-separated CORS origins.
+- `PORT`: Optional. Defaults to `8000`.
 
-## Future Roadmap
+### Frontend
 
-- Scheduled re-scans with email alerts
-- Multi-domain monitoring dashboard
-- Compliance mapping (SOC 2, HIPAA, PCI-DSS)
-- Browser extension for instant checks
-- API for MSP/IT consultant integration
+- `NEXT_PUBLIC_API_URL`: Backend base URL, e.g. `http://localhost:8000`.
+
+## API Endpoints
+
+- `GET /api/health` - Health check
+- `POST /api/scan` - Start scan, body: `{ "domain": "example.com" }`
+- `GET /api/results/{scan_id}` - Poll scan status and retrieve report payload
+- `GET /api/report/{scan_id}/pdf` - Download generated PDF (when scan complete)
+
+## Security and Scope
+
+DomainVitals is passive by design. It does not attempt exploitation, brute-force activity, or active vulnerability attacks. It only inspects externally observable signals and third-party intelligence sources.
+
+## Deployment Notes
+
+- Backend includes `backend/render.yaml` for Render deployment.
+- Frontend includes `frontend/vercel.json` for Vercel deployment.
+- Set `ALLOWED_ORIGINS` on backend to your deployed frontend URL.
+
+## Troubleshooting
+
+- First hosted request is slow: free-tier backends can cold start.
+- CORS/network errors in frontend: verify `ALLOWED_ORIGINS` and `NEXT_PUBLIC_API_URL`.
+- Missing PDF: wait for scan status to become `completed` before download.
+- Empty open-port results: expected when `SHODAN_API_KEY` is not set.
 
 ## License
 

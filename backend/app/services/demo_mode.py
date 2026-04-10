@@ -10,7 +10,7 @@ from typing import Dict
 from app.models.report import FullReport
 from app.models.scan import CategoryScore, Finding, ModuleResult, ModuleStatus, RiskScore, Severity
 
-DEMO_DOMAIN = "demo.threatlens.io"
+DEMO_DOMAIN = "demo.domainvitals.io"
 FIXTURE_DIR = Path(__file__).resolve().parents[1] / "fixtures"
 DEMO_REPORT_FIXTURE = FIXTURE_DIR / "demo_report.json"
 DEMO_MODULE_DELAYS = {
@@ -145,13 +145,13 @@ def build_demo_modules() -> Dict[str, ModuleResult]:
             data={
                 "subdomains": [
                     {
-                        "name": "staging.demo.threatlens.io",
+                        "name": "staging.demo.domainvitals.io",
                         "first_seen": "2026-02-18T14:12:00+00:00",
                         "last_seen": "2026-04-02T09:20:00+00:00",
                         "expired_cert_reference": False,
                     },
                     {
-                        "name": "legacy-billing.demo.threatlens.io",
+                        "name": "legacy-billing.demo.domainvitals.io",
                         "first_seen": "2025-11-07T12:45:00+00:00",
                         "last_seen": "2026-03-29T17:02:00+00:00",
                         "expired_cert_reference": True,
@@ -176,7 +176,7 @@ def build_demo_modules() -> Dict[str, ModuleResult]:
                         "Restrict staging access to employees or VPN users only.",
                         "Remove public DNS or certificate exposure for non-public environments.",
                     ],
-                    evidence={"subdomain": "staging.demo.threatlens.io"},
+                    evidence={"subdomain": "staging.demo.domainvitals.io"},
                 )
             ],
         ),
@@ -186,8 +186,8 @@ def build_demo_modules() -> Dict[str, ModuleResult]:
             note="Primary certificate is current, but a legacy billing host surfaced a critical issue.",
             data={
                 "issuer": {"organizationName": "Let's Encrypt"},
-                "subject": {"commonName": "demo.threatlens.io"},
-                "sans": ["demo.threatlens.io", "www.demo.threatlens.io"],
+                "subject": {"commonName": "demo.domainvitals.io"},
+                "sans": ["demo.domainvitals.io", "www.demo.domainvitals.io"],
                 "protocol_version": "TLSv1.3",
                 "expires_at": "2026-06-20T00:00:00+00:00",
                 "days_until_expiry": 72,
@@ -199,7 +199,7 @@ def build_demo_modules() -> Dict[str, ModuleResult]:
                     category="ssl_tls",
                     severity=Severity.CRITICAL,
                     description=(
-                        "The fictional billing host `legacy-billing.demo.threatlens.io` is still"
+                        "The fictional billing host `legacy-billing.demo.domainvitals.io` is still"
                         " tied to an expired certificate."
                     ),
                     impact=(
@@ -211,7 +211,7 @@ def build_demo_modules() -> Dict[str, ModuleResult]:
                         "If it is active, replace the expired certificate immediately.",
                         "If it is retired, remove its DNS records and decommission the host cleanly.",
                     ],
-                    evidence={"subdomain": "legacy-billing.demo.threatlens.io", "expired_on": "2026-03-12"},
+                    evidence={"subdomain": "legacy-billing.demo.domainvitals.io", "expired_on": "2026-03-12"},
                 )
             ],
         ),
@@ -259,11 +259,11 @@ def build_demo_modules() -> Dict[str, ModuleResult]:
                         " and account-reset attacks with far less resistance."
                     ),
                     remediation=[
-                        "Publish a DMARC record at `_dmarc.demo.threatlens.io`.",
+                        "Publish a DMARC record at `_dmarc.demo.domainvitals.io`.",
                         "Start with `p=none` to monitor traffic safely.",
                         "Move to `p=quarantine` or `p=reject` after validating legitimate senders.",
                     ],
-                    evidence={"host": "_dmarc.demo.threatlens.io"},
+                    evidence={"host": "_dmarc.demo.domainvitals.io"},
                 ),
                 _finding(
                     title="SPF policy uses softfail",
@@ -319,7 +319,7 @@ def build_demo_modules() -> Dict[str, ModuleResult]:
                 },
                 "http": {
                     "status_code": 301,
-                    "headers": {"location": "https://demo.threatlens.io"},
+                    "headers": {"location": "https://demo.domainvitals.io"},
                     "error": None,
                 },
                 "redirects_to_https": True,
@@ -396,7 +396,7 @@ def build_demo_modules() -> Dict[str, ModuleResult]:
                         "Keep the redirect in place.",
                         "Pair it with HSTS for stronger browser-side enforcement.",
                     ],
-                    evidence={"location": "https://demo.threatlens.io"},
+                    evidence={"location": "https://demo.domainvitals.io"},
                 ),
             ],
         ),

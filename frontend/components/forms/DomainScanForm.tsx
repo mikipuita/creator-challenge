@@ -6,7 +6,7 @@ import { ArrowRight, Globe2 } from "lucide-react";
 
 import { ApiError, startScan, validateDomain } from "@/lib/api";
 
-const DEMO_DOMAIN = "demo.threatlens.io";
+const DEMO_DOMAIN = "demo.domainvitals.io";
 const SLOW_START_STORAGE_KEY = "domainvitals-slow-start";
 
 export function DomainScanForm() {
