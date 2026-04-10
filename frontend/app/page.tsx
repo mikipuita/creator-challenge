@@ -14,6 +14,7 @@ import {
 
 import { DomainScanForm } from "@/components/forms/DomainScanForm";
 import { Navbar } from "@/components/ui/Navbar";
+import { RecentScansPanel } from "@/components/ui/RecentScansPanel";
 
 const trustChecks = [
   { label: "DNS", icon: Network },
@@ -90,6 +91,8 @@ export default function HomePage() {
         </div>
       </section>
 
+      <RecentScansPanel />
+
       <section className="px-4 pb-24 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -129,9 +132,7 @@ export default function HomePage() {
       <footer className="border-t border-white/6 px-4 py-8 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 text-sm text-textSecondary sm:flex-row sm:items-center sm:justify-between">
           <p>Built for the Codex Creator Challenge</p>
-          <Link className="transition hover:text-white" href="https://github.com/your-org/domainvitals">
-            GitHub placeholder
-          </Link>
+          <p>Passive-only recon • Demo-ready on Vercel + Render</p>
         </div>
       </footer>
     </main>

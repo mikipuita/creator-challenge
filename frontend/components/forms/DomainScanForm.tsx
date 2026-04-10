@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Globe2 } from "lucide-react";
 
-import { ApiError, startScan, validateDomain } from "@/lib/api";
+import { ApiError, normalizeDomain, startScan, validateDomain } from "@/lib/api";
+import { rememberStartedScan } from "@/lib/session-history";
 
 const DEMO_DOMAIN = "demo.domainvitals.io";
 const SLOW_START_STORAGE_KEY = "domainvitals-slow-start";
@@ -30,7 +31,8 @@ export function DomainScanForm() {
       setStatusMessage("Starting up the security engine... this takes a moment on first scan");
     }, 5000);
     try {
-      const response = await startScan(targetDomain);
+      const normalizedDomain = normalizeDomain(targetDomain);
+      const response = await startScan(normalizedDomain);
       window.clearTimeout(slowStartTimer);
       if (typeof window !== "undefined") {
         if (response.slowStartDetected) {
@@ -39,6 +41,7 @@ export function DomainScanForm() {
           window.sessionStorage.removeItem(SLOW_START_STORAGE_KEY);
         }
       }
+      rememberStartedScan(response.data.scan_id, normalizedDomain);
       router.push(`/scan/${response.data.scan_id}`);
     } catch (caughtError) {
       window.clearTimeout(slowStartTimer);

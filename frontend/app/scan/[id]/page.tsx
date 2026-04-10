@@ -10,6 +10,7 @@ import { LoadingPulse } from "@/components/ui/LoadingPulse";
 import { Navbar } from "@/components/ui/Navbar";
 import { ApiError, getScanResults } from "@/lib/api";
 import { modulePresentation, summarizeProgress } from "@/lib/presentation";
+import { syncScanToSessionHistory } from "@/lib/session-history";
 import { ModuleResult, ScanResults } from "@/lib/types";
 
 const MAX_POLLING_DURATION_MS = 180_000;
@@ -136,6 +137,7 @@ export default function ScanPage({
         if (cancelled) return;
         setScan(response);
         setError(null);
+        syncScanToSessionHistory(response);
 
         const progress = summarizeProgress(response.modules);
         const finishedModules = Object.values(response.modules).filter((module) =>
@@ -153,7 +155,9 @@ export default function ScanPage({
           setEstimatedSecondsRemaining(0);
         }
 
-        if (response.status === "completed" || progress >= 100) {
+        const reportReady = response.status === "completed" && Boolean(response.risk_score && response.report);
+
+        if (reportReady) {
           setSlowStartNotice(null);
           if (intervalId) {
             clearInterval(intervalId);
@@ -290,6 +294,12 @@ export default function ScanPage({
               transition={{ duration: 0.6, ease: "easeOut" }}
             />
           </div>
+
+          {progress >= 100 && !(scan.status === "completed" && scan.risk_score && scan.report) ? (
+            <div className="mt-6 rounded-[1.5rem] border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-100">
+              Recon modules are done. DomainVitals is packaging the scorecard and attacker narrative now.
+            </div>
+          ) : null}
 
           <div className="grid-shell panel relative mt-10 min-h-[44rem] rounded-[2.5rem] px-5 py-6 sm:px-8 lg:px-10">
             <div className="relative flex min-h-[40rem] flex-col items-center justify-start lg:justify-center">
