@@ -1034,3 +1034,80 @@ def generate_pdf_report(scan_result: ScanResult) -> bytes:
         grade=scan_result.risk_score.overall_grade,
         score=int(round(scan_result.risk_score.overall_score)),
     )
+
+
+def generate_fallback_pdf_report(scan_result: ScanResult, error_message: str | None = None) -> bytes:
+    """Generate a minimal PDF when the full branded layout fails."""
+
+    if not scan_result.report or not scan_result.risk_score:
+        raise ValueError("A completed report and risk score are required before exporting PDF.")
+
+    buffer = BytesIO()
+    canvas = Canvas(buffer, pagesize=LETTER)
+    width, height = LETTER
+    x = MARGIN
+    y = height - MARGIN
+
+    def new_page() -> None:
+        nonlocal y
+        canvas.showPage()
+        y = height - MARGIN
+
+    def write_line(text: str, *, font: str = "Helvetica", size: float = 10, color=LIGHT_GRAY, gap: float = 14) -> None:
+        nonlocal y
+        if y < MARGIN + 48:
+            new_page()
+        canvas.setFont(font, size)
+        canvas.setFillColor(color)
+        canvas.drawString(x, y, text[:120])
+        y -= gap
+
+    canvas.setFillColor(NAVY)
+    canvas.rect(0, 0, width, height, fill=1, stroke=0)
+
+    write_line("DOMAINVITALS SECURITY ASSESSMENT", font="Helvetica-Bold", size=20, color=WHITE, gap=22)
+    write_line(f"Domain: {scan_result.domain}", font="Helvetica-Bold", size=13, color=WHITE, gap=18)
+    write_line(
+        f"Score: {int(round(scan_result.risk_score.overall_score))}/100  Grade: {scan_result.risk_score.overall_grade}",
+        font="Helvetica-Bold",
+        size=12,
+        color=WHITE,
+        gap=18,
+    )
+    write_line(
+        f"Scan date: {(scan_result.completed_at or scan_result.updated_at or scan_result.created_at).strftime('%B %d, %Y')}",
+        size=11,
+        gap=20,
+    )
+
+    if error_message:
+        write_line("Note: the full branded PDF layout failed, so DomainVitals generated this simplified export.", color=ACCENT_AMBER, gap=16)
+        write_line(f"PDF layout error: {error_message}", color=ACCENT_AMBER, gap=20)
+
+    write_line("Executive Summary", font="Helvetica-Bold", size=14, color=WHITE, gap=18)
+    for paragraph in _paragraphs_from_text(scan_result.report.executive_summary):
+        for line in re.findall(r".{1,105}(?:\s|$)", paragraph):
+            if line.strip():
+                write_line(line.strip(), size=10.5)
+        y -= 4
+
+    write_line("Attacker Perspective", font="Helvetica-Bold", size=14, color=WHITE, gap=18)
+    for paragraph in _paragraphs_from_text(scan_result.report.attacker_narrative):
+        for line in re.findall(r".{1,105}(?:\s|$)", paragraph):
+            if line.strip():
+                write_line(line.strip(), size=10.5)
+        y -= 4
+
+    write_line("Top Action Items", font="Helvetica-Bold", size=14, color=WHITE, gap=18)
+    for index, item in enumerate(scan_result.report.prioritized_action_items[:8], start=1):
+        write_line(f"{index}. {item.title} [{item.difficulty}]", font="Helvetica-Bold", size=11, color=WHITE, gap=16)
+        write_line(f"Category: {item.category}", size=10)
+        write_line(item.rationale, size=10)
+        for step in item.steps[:3]:
+            write_line(f"- {step}", size=10)
+        y -= 4
+
+    canvas.save()
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+    return pdf_bytes

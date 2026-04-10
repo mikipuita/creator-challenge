@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import Response
 
 from app.models.scan import ScanLifecycle
 from app.state import SCAN_STORE
-from app.utils.pdf_generator import generate_pdf_report
+from app.utils.pdf_generator import generate_fallback_pdf_report, generate_pdf_report
 
 router = APIRouter(tags=["report"])
 
@@ -29,17 +31,24 @@ async def download_report(scan_id: str) -> Response:
         )
 
     try:
-        pdf_bytes = generate_pdf_report(scan_result)
+        pdf_bytes = await asyncio.to_thread(generate_pdf_report, scan_result)
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(exc),
         ) from exc
     except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"PDF generation failed: {exc}",
-        ) from exc
+        try:
+            pdf_bytes = await asyncio.to_thread(
+                generate_fallback_pdf_report,
+                scan_result,
+                str(exc),
+            )
+        except Exception as fallback_exc:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"PDF generation failed: {exc}; fallback export failed: {fallback_exc}",
+            ) from fallback_exc
 
     filename = f"{scan_result.domain}-domainvitals-report.pdf"
     return Response(
