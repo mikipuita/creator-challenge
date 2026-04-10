@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
-import { AlertTriangle, Check, ChevronRight, RotateCw } from "lucide-react";
+import { motion } from "framer-motion";
+import { AlertTriangle, Check, ChevronRight, LoaderCircle, RotateCw } from "lucide-react";
 
 import { LoadingPulse } from "@/components/ui/LoadingPulse";
 import { Navbar } from "@/components/ui/Navbar";
@@ -22,19 +22,9 @@ const moduleOrder = [
   "ssl_tls",
   "email_security",
   "headers",
-  "open_ports",
-  "tech_stack"
+  "tech_stack",
+  "open_ports"
 ] as const;
-
-const desktopRingPositions = [
-  "lg:absolute lg:left-[9%] lg:top-[14%]",
-  "lg:absolute lg:right-[9%] lg:top-[14%]",
-  "lg:absolute lg:left-[2%] lg:top-[43%]",
-  "lg:absolute lg:right-[2%] lg:top-[43%]",
-  "lg:absolute lg:left-[12%] lg:bottom-[10%]",
-  "lg:absolute lg:right-[12%] lg:bottom-[10%]",
-  "lg:absolute lg:left-1/2 lg:bottom-[1%] lg:-translate-x-1/2"
-];
 
 function moduleCardTone(status: ModuleResult["status"]): string {
   if (status === "complete") return "border-emerald-500/30 bg-emerald-500/12";
@@ -46,29 +36,29 @@ function moduleCardTone(status: ModuleResult["status"]): string {
 
 function ModuleStatusCard({
   moduleKey,
-  module,
-  positionClass
+  module
 }: {
   moduleKey: string;
   module: ModuleResult;
-  positionClass: string;
 }) {
   const presentation = modulePresentation[moduleKey];
   const scanning = module.status === "scanning";
   const complete = module.status === "complete";
   const error = module.status === "error";
+  const skipped = module.status === "skipped";
 
   return (
     <motion.div
-      animate={scanning ? { y: [0, -3, 0] } : undefined}
-      className={`relative rounded-3xl border px-4 py-4 ${moduleCardTone(module.status)} ${positionClass}`}
+      animate={scanning ? { opacity: [0.88, 1, 0.88] } : { opacity: 1 }}
+      className={`relative h-full min-h-[13.5rem] rounded-[2rem] border px-5 py-5 transition-colors duration-300 ${moduleCardTone(module.status)}`}
       initial={{ opacity: 0, y: 18 }}
       transition={{
-        duration: scanning ? 1.5 : 0.25,
+        duration: scanning ? 2.2 : 0.35,
         repeat: scanning ? Number.POSITIVE_INFINITY : 0,
         ease: "easeInOut"
       }}
       whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.2 }}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -84,7 +74,9 @@ function ModuleStatusCard({
               ? "bg-emerald-400/20 text-emerald-300"
               : error
                 ? "bg-red-400/20 text-red-300"
-                : scanning
+                : skipped
+                  ? "bg-amber-400/20 text-amber-200"
+                  : scanning
                   ? "animate-pulse bg-blue-400/20 text-blue-300"
                   : "bg-slate-500/20 text-slate-300"
           }`}
@@ -93,12 +85,14 @@ function ModuleStatusCard({
             <Check className="h-5 w-5" />
           ) : error ? (
             <AlertTriangle className="h-5 w-5" />
+          ) : skipped ? (
+            <RotateCw className="h-5 w-5" />
           ) : (
             <RotateCw className={`h-5 w-5 ${scanning ? "animate-spin" : ""}`} />
           )}
         </div>
       </div>
-      <p className="mt-4 text-xs text-textSecondary">
+      <p className="mt-4 line-clamp-3 text-xs leading-6 text-textSecondary">
         {module.error || module.note || `Status: ${module.status}`}
       </p>
     </motion.div>
@@ -281,8 +275,9 @@ export default function ScanPage({
           </div>
 
           {slowStartNotice ? (
-            <div className="mt-6 rounded-[1.5rem] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-              Waking up the server... {slowStartNotice}
+            <div className="mt-6 flex items-center gap-3 rounded-[1.5rem] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+              <LoaderCircle className="h-4 w-4 shrink-0 animate-spin text-accentAmber" />
+              <span>Waking up the server... {slowStartNotice}</span>
             </div>
           ) : null}
 
@@ -296,14 +291,20 @@ export default function ScanPage({
           </div>
 
           {progress >= 100 && !(scan.status === "completed" && scan.risk_score && scan.report) ? (
-            <div className="mt-6 rounded-[1.5rem] border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-100">
-              Recon modules are done. DomainVitals is packaging the scorecard and attacker narrative now.
+            <div className="mt-6 flex items-center gap-3 rounded-[1.5rem] border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-100">
+              <LoaderCircle className="h-4 w-4 shrink-0 animate-spin text-accentBlue" />
+              <span>Recon modules are done. DomainVitals is packaging the scorecard and attacker narrative now.</span>
             </div>
           ) : null}
 
-          <div className="grid-shell panel relative mt-10 min-h-[44rem] rounded-[2.5rem] px-5 py-6 sm:px-8 lg:px-10">
-            <div className="relative flex min-h-[40rem] flex-col items-center justify-start lg:justify-center">
-              <div className="z-10 mb-6 flex w-full max-w-sm flex-col items-center rounded-[2rem] border border-accentBlue/20 bg-accentBlue/10 px-6 py-8 text-center shadow-glow lg:mb-0">
+          <div className="grid-shell panel relative mt-10 rounded-[2.5rem] px-5 py-6 sm:px-8 lg:px-10">
+            <div className="grid gap-5 xl:grid-cols-3 xl:grid-rows-[minmax(13.5rem,1fr)_minmax(15rem,1fr)_minmax(13.5rem,1fr)]">
+              <ModuleStatusCard module={modules[0].result} moduleKey={modules[0].key} />
+              <div className="hidden xl:block" />
+              <ModuleStatusCard module={modules[1].result} moduleKey={modules[1].key} />
+
+              <ModuleStatusCard module={modules[2].result} moduleKey={modules[2].key} />
+              <div className="z-10 flex min-h-[15rem] flex-col items-center justify-center rounded-[2rem] border border-accentBlue/20 bg-accentBlue/10 px-6 py-8 text-center shadow-glow">
                 <p className="font-[family-name:var(--font-mono)] text-xs uppercase tracking-[0.3em] text-accentBlue">
                   Target Domain
                 </p>
@@ -312,19 +313,11 @@ export default function ScanPage({
                   Passive checks only. No invasive probing. No signup required.
                 </p>
               </div>
+              <ModuleStatusCard module={modules[3].result} moduleKey={modules[3].key} />
 
-              <div className="mt-6 grid w-full gap-4 sm:grid-cols-2 lg:mt-0 lg:block lg:min-h-[33rem]">
-                <AnimatePresence>
-                  {modules.map(({ key, result }, index) => (
-                    <ModuleStatusCard
-                      key={key}
-                      module={result}
-                      moduleKey={key}
-                      positionClass={desktopRingPositions[index] ?? ""}
-                    />
-                  ))}
-                </AnimatePresence>
-              </div>
+              <ModuleStatusCard module={modules[4].result} moduleKey={modules[4].key} />
+              <ModuleStatusCard module={modules[5].result} moduleKey={modules[5].key} />
+              <ModuleStatusCard module={modules[6].result} moduleKey={modules[6].key} />
             </div>
           </div>
 

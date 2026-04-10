@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Globe2 } from "lucide-react";
+import { ArrowRight, Globe2, LoaderCircle } from "lucide-react";
 
 import { ApiError, normalizeDomain, startScan, validateDomain } from "@/lib/api";
 import { rememberStartedScan } from "@/lib/session-history";
@@ -99,9 +99,10 @@ export function DomainScanForm() {
         Free • No signup • Results in 60 seconds
       </p>
       {isSubmitting ? (
-        <p className="mt-3 text-center text-sm text-accentAmber">
-          {statusMessage ?? "Preparing your scan request..."}
-        </p>
+        <div className="mt-3 flex items-center justify-center gap-2 text-sm text-accentAmber">
+          <LoaderCircle className="h-4 w-4 animate-spin" />
+          <p>{statusMessage ?? "Preparing your scan request..."}</p>
+        </div>
       ) : null}
       <div className="mt-3 text-center">
         <button
